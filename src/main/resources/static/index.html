@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fake Company Verifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            padding: 30px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eef;
+            border-radius: 5px;
+        }
+        .evidence {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .badge {
+            padding: 5px 10px;
+            border-radius: 5px;
+            color: white;
+        }
+        .real { background: green; }
+        .fake { background: red; }
+        .review { background: orange; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Fake Company Verifier</h2>
+
+    <input id="name" placeholder="Company Name *" />
+    <input id="city" placeholder="City " />
+    <input id="website" placeholder="Website " />
+
+    <button onclick="verify()">Verify Company</button>
+
+    <div id="output" class="result" style="display:none;"></div>
+</div>
+
+<script>
+    function verify() {
+        const name = document.getElementById("name").value;
+        const city = document.getElementById("city").value;
+        const website = document.getElementById("website").value;
+
+        if (!name) {
+            alert("Company name is required");
+            return;
+        }
+
+        fetch("/api/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: name,
+                city: city || null,
+                website: website || null
+            })
+        })
+        .then(res => res.json())
+        .then(data => showResult(data))
+        .catch(err => alert("Error connecting to backend"));
+    }
+
+    function showResult(data) {
+        const output = document.getElementById("output");
+        output.style.display = "block";
+
+        let badgeClass = "review";
+        if (data.verdict.includes("Real")) badgeClass = "real";
+        if (data.verdict.includes("Fake")) badgeClass = "fake";
+
+        let html = `
+            <h3>${data.name}</h3>
+            <p><b>Trust Score:</b> ${data.trustScore}</p>
+            <p><b>Verdict:</b>
+                <span class="badge ${badgeClass}">
+                    ${data.verdict}
+                </span>
+            </p>
+            <hr>
+            <b>Evidence:</b>
+        `;
+
+        data.evidences.forEach(e => {
+            html += `
+                <div class="evidence">
+                    • <b>${e.source}</b> → Score: ${e.score}
+                </div>
+            `;
+        });
+
+        output.innerHTML = html;
+    }
+</script>
+
+</body>
+</html>
