@@ -98,3 +98,6 @@ DNS checks analyze whether a domain has proper email and sender validation recor
 
 ## Why it matters?
 Real companies typically have configured corporate email infrastructure, while scam entities often do not.
+
+## Here's an example of How it works:
+![Real Company](screenshot.png)
