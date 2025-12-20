@@ -1,4 +1,4 @@
-**Fake Company Verifier**
+## Fake Company Verifier
 
 **Overview**
 
@@ -24,13 +24,13 @@ The Fake Company Verifier performs multi-source verification by collecting indep
 
 The application follows a layered Spring Boot architecture:
 
-- ## Frontend:
+ ## Frontend:
 - Static HTML + JavaScript
-- ## Backend:
+ ## Backend:
 - Spring Boot REST API
-- ## Data Sources:
+ ## Data Sources:
 - CSV blacklist + external public services
-- ## Deployment:
+ ## Deployment:
 -  Executable JAR
 
 The frontend is served directly by the backend and communicates via REST APIs.
