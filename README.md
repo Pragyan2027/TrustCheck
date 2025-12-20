@@ -10,117 +10,87 @@ This project aims to automatically verify the legitimacy of a company using publ
 
 Manual verification of companies is time-consuming and error-prone. Users often have to:
 
--Search for office addresses
--Verify websites
--Check domain age
--Look for blacklist warnings
--There is no single platform that consolidates all these checks into a unified verification system, especially using free and open services.
+-**Search for office addresses**
+-**Verify websites**
+-**Check domain age**
+-**Look for blacklist warnings**
+-**There is no single platform that consolidates all these checks into a unified verification system, especially using free and open services.**
 
-Solution Approach
+## Solution Approach
 
 The Fake Company Verifier performs multi-source verification by collecting independent evidence from various free data sources and aggregating them into a trust score. Each verification step contributes positively, negatively, or neutrally to the final result.
 
-The system does not rely on any single factor to label a company as fake or real.
-
-System Architecture
+## System Architecture
 
 The application follows a layered Spring Boot architecture:
 
-Frontend: Static HTML + JavaScript
-
-Backend: Spring Boot REST API
-
-Data Sources: CSV blacklist + external public services
-
-Deployment: Executable JAR
+## Frontend: Static HTML + JavaScript
+## Backend: Spring Boot REST API
+## Data Sources: CSV blacklist + external public services
+## Deployment: Executable JAR
 
 The frontend is served directly by the backend and communicates via REST APIs.
 
-Verification Components Explained
-1. Blacklist Check (Seed Data)
+## Verification Components Used & Explained
+
+**1. Blacklist Check (Seed Data)**
 
 A CSV file containing known fake or blacklisted companies is loaded at application startup.
-
-Source: Publicly available verified lists
-
-Purpose: Acts as an early warning signal
-
-Behavior: A blacklist match does not immediately mark a company as fake but lowers trust
+**Source:** Publicly available verified lists
+**Purpose:** Acts as an early warning signal
+**Behavior:** A blacklist match does not immediately mark a company as fake but lowers trust
 
 This ensures fairness and avoids hard-coded assumptions.
 
-2. Nominatim (OpenStreetMap) Office Verification
+## 2. Nominatim (OpenStreetMap) Office Verification
 
-What is Nominatim?
 Nominatim is a free geocoding service provided by OpenStreetMap that converts place names into geographic coordinates and structured location data.
 
-How it is used:
+## How it is used here:
+The company name (and optional city) is queried against Nominatim. If a physical office location is found, it is considered strong legitimacy evidence.
 
-The company name (and optional city) is queried against Nominatim
-
-If a physical office location is found, it is considered strong legitimacy evidence
-
-Why it matters:
+## Why it matters:
 Fake companies often do not have verifiable physical offices.
 
-API used:
+## API used:
 
-OpenStreetMap Nominatim Search API
+- OpenStreetMap Nominatim Search API
+- Free and open-source
 
-Free and open-source
+## 3. WHOIS Domain Analysis
 
-Requires a valid User-Agent identifier
-
-3. WHOIS Domain Analysis
-
-What is WHOIS?
 WHOIS is a protocol that provides registration details of internet domains, such as:
+Creation date , Registrar , Expiry date
 
-Creation date
-
-Registrar
-
-Expiry date
-
-How it is used:
-
+## How it is used:
 The company’s domain is extracted from the provided website
-
 The domain’s age is calculated in days
 
-Why it matters:
+## Why it matters:
 
 Scam companies often use recently registered domains
-
 Older domains indicate long-term legitimacy
-
 No paid WHOIS APIs are used; raw WHOIS lookup is performed.
 
-4. Website Analysis
+## 4. Website Analysis
 
 The website analysis module checks:
+- ## HTTPS availability
+- ## TLS certificate presence
+- ## Availability of a contact page
 
-HTTPS availability
-
-TLS certificate presence
-
-Availability of a contact page
-
-Important design note:
+## Important design note:
 TLS failures can occur due to Java truststore or certificate chain limitations. Therefore, TLS failures do not immediately penalize the company and are handled using fallback logic.
-
 This prevents false positives for legitimate companies.
 
-5. DNS Infrastructure Checks
+## 5. DNS Infrastructure Checks
 
-What is DNS checking?
 DNS checks analyze whether a domain has proper email and sender validation records.
 
-Checks performed:
+## Checks performed:
 
-MX records (mail servers)
+- ## MX records (mail servers)
+- ## SPF records (sender policy framework)
 
-SPF records (sender policy framework)
-
-Why it matters:
+## Why it matters?
 Real companies typically have configured corporate email infrastructure, while scam entities often do not.
