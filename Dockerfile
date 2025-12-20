@@ -1,17 +1,17 @@
-# Use official Java runtime
+# ---------- BUILD STAGE ----------
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+
+RUN mvn clean package -DskipTests
+
+# ---------- RUNTIME STAGE ----------
 FROM eclipse-temurin:17-jdk
 
-# Set working directory
 WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 
-# Copy project files
-COPY . .
-
-# Build the application
-RUN ./mvnw clean package -DskipTests || mvn clean package -DskipTests
-
-# Expose Spring Boot port
 EXPOSE 8080
-
-# Run the application
-CMD ["java", "-jar", "target/*.jar"]
+CMD ["java", "-jar", "app.jar"]
