@@ -1,12 +1,12 @@
 ## Fake Company Verifier
 
-**Overview**
+## Overview
 
 Fake job postings and scam companies have become increasingly common on job portals and social media platforms. Many of these entities operate without a real office location, registered domain history, or proper corporate infrastructure, making it difficult for students and job seekers to verify their authenticity.
 This project aims to automatically verify the legitimacy of a company using publicly available and free data sources. It combines blacklist data, physical office verification, domain intelligence, website analysis, and DNS infrastructure checks to produce a trust score and verdict for a given company.
 
 
-**Problem Statement**
+## Problem Statement
 
 Manual verification of companies is time-consuming and error-prone. Users often have to:
 
@@ -37,7 +37,7 @@ The frontend is served directly by the backend and communicates via REST APIs.
 
 ## Verification Components Used & Explained
 
-**1. Blacklist Check (Seed Data)**
+## 1. Blacklist Check (Seed Data)
 
 A CSV file containing known fake or blacklisted companies is loaded at application startup.
 **Source:** Publicly available verified lists
@@ -79,9 +79,9 @@ No paid WHOIS APIs are used; raw WHOIS lookup is performed.
 ## 4. Website Analysis
 
 The website analysis module checks:
-- ## HTTPS availability
-- ## TLS certificate presence
-- ## Availability of a contact page
+- **HTTPS availability**
+- **TLS certificate presence**
+- **Availability of a contact page**
 
 ## Important design note:
 TLS failures can occur due to Java truststore or certificate chain limitations. Therefore, TLS failures do not immediately penalize the company and are handled using fallback logic.
@@ -93,8 +93,8 @@ DNS checks analyze whether a domain has proper email and sender validation recor
 
 ## Checks performed:
 
-- ## MX records (mail servers)
-- ## SPF records (sender policy framework)
+- **MX records (mail servers)**
+- **SPF records (sender policy framework)**
 
 ## Why it matters?
 Real companies typically have configured corporate email infrastructure, while scam entities often do not.
