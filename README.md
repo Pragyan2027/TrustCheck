@@ -74,9 +74,9 @@ Java 17, Spring Boot, Spring WebClient, Apache PDFBox, Jackson, Tesseract.js (in
 
 | Endpoint | Method | Purpose |
 |---|---|---|
-| `/api/verify` | POST | Verify a company (`name`, optional `city`, `website`, `domain`, `recruiterEmail`) |
-| `/api/offer-letter/analyze-text` | POST | Analyze pasted letter text, `{"text": "..."}` |
-| `/api/offer-letter/analyze-file` | POST | Analyze an uploaded PDF or TXT (multipart field `file`) |
+| /api/verify | POST | Verify a company (`name`, optional `city`, `website`, `domain`, `recruiterEmail`) |
+| /api/offer-letter/analyze-text | POST | Analyze pasted letter text, `{"text": "..."}` |
+| /api/offer-letter/analyze-file | POST | Analyze an uploaded PDF or TXT (multipart field `file`) |
 
 The two offer-letter endpoints return the offer analysis plus `companyVerification` and `verificationNote`.
 
