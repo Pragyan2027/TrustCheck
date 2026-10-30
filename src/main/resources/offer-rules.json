@@ -1,0 +1,139 @@
+{
+  "readme": "Edit this file to change what the offer letter analyzer flags. Phrases are plain text, case-insensitive, matched as whole words. No code change needed, just restart the app. Severity is one of LOW, MEDIUM, HIGH, CRITICAL.",
+
+  "points": { "LOW": 10, "MEDIUM": 20, "HIGH": 35, "CRITICAL": 60 },
+  "levels": { "mediumFrom": 20, "highFrom": 50 },
+
+  "candidatePayment": {
+    "severity": "CRITICAL",
+    "title": "Asks the candidate to pay money",
+    "advice": "Genuine employers do not charge candidates for jobs, training, kits or security. Do not pay anything.",
+    "feeKinds": [
+      "registration", "processing", "training", "joining", "security", "verification",
+      "onboarding", "document", "documentation", "kit", "laptop", "id card", "interview",
+      "application", "admin", "administrative", "refundable", "courier", "insurance",
+      "software", "login", "activation"
+    ],
+    "feeWords": ["fee", "fees", "charge", "charges", "deposit", "amount", "money"],
+    "paymentPhrases": [
+      "token amount", "booking amount", "seat blocking", "seat booking", "caution money",
+      "kindly arrange", "arrange the amount", "advance payment of"
+    ],
+    "subjects": ["you", "candidate", "candidates", "applicant", "applicants", "employee"],
+    "verbs": ["pay", "deposit", "transfer", "remit", "send"],
+    "channels": ["upi", "paytm", "gpay", "google pay", "phonepe", "bhim", "neft", "imps", "rtgs", "qr code"],
+    "noFee": {
+      "negations": ["no", "not", "never", "without", "zero"],
+      "nouns": ["fee", "fees", "charge", "charges", "money", "payment", "deposit"],
+      "phrases": [
+        "do not charge", "does not charge", "will not charge", "shall not charge", "never charge",
+        "do not ask", "does not ask", "never ask", "do not collect", "does not collect",
+        "do not demand", "does not demand", "do not require", "does not require",
+        "do not need to pay", "does not need to pay", "free of cost"
+      ]
+    },
+    "companyPaysPhrases": [
+      "borne by the company", "paid by the company", "provided by the company",
+      "covered by the company", "sponsored by the company", "borne by the organization",
+      "borne by the employer", "company will pay", "company will bear", "company will provide"
+    ]
+  },
+
+  "bondClause": {
+    "code": "BOND_CLAUSE",
+    "severity": "MEDIUM",
+    "title": "Contains a bond / penalty clause",
+    "advice": "Not necessarily a scam, but read the exit terms carefully before signing.",
+    "phrases": [
+      "notice period", "in lieu", "breach", "liquidated", "resign", "resignation",
+      "terminate", "terminated", "termination", "service bond", "service agreement", "bond",
+      "recover", "recovered", "recovery", "damages", "clawback"
+    ]
+  },
+
+  "phraseRules": [
+    {
+      "code": "BANKING_SECRETS",
+      "severity": "CRITICAL",
+      "title": "Mentions OTP / PIN / card details",
+      "advice": "No employer needs your OTP, PIN or card number. Never share them.",
+      "phrases": [
+        "otp", "one time password", "cvv", "atm pin", "upi pin", "card number",
+        "net banking password", "net banking id", "netbanking password", "netbanking id"
+      ]
+    },
+    {
+      "code": "OFF_PLATFORM_CONTACT",
+      "severity": "MEDIUM",
+      "title": "Pushes you to WhatsApp / Telegram",
+      "advice": "Official hiring normally uses company email, not chat apps.",
+      "phrases": ["whatsapp", "telegram", "signal"]
+    },
+    {
+      "code": "NO_INTERVIEW",
+      "severity": "MEDIUM",
+      "title": "Selection without an interview",
+      "advice": "Being hired without any interview or test is a common scam pattern.",
+      "phrases": [
+        "without interview", "without any interview", "no interview",
+        "without test", "without any test", "no test",
+        "without assessment", "without any assessment", "no assessment",
+        "directly selected", "directly shortlisted", "directly hired",
+        "selected based on your resume", "selected based on your profile", "selected based on your cv",
+        "selected on your resume", "selected on your profile"
+      ]
+    },
+    {
+      "code": "URGENCY",
+      "severity": "LOW",
+      "title": "Creates artificial urgency",
+      "advice": "Scammers rush you so you do not verify. Take your time.",
+      "phrases": [
+        "within 24 hours", "within 48 hours", "within 24 hrs", "within 48 hrs",
+        "within twenty four hours", "within twenty-four hours", "within forty eight hours",
+        "within forty-eight hours", "last date to accept", "last date to confirm", "last date to pay", "last date of security deposit",
+        "limited seats", "limited slots", "limited vacancies", "today only",
+        "offer will be cancelled", "offer will be canceled", "offer will be withdrawn",
+        "offer will be revoked"
+      ]
+    }
+  ],
+
+  "salary": {
+    "severity": "MEDIUM",
+    "title": "Pay looks too high for this kind of role",
+    "advice": "Very high pay for data entry, intern or work-from-home roles is a classic lure.",
+    "lowSkillRoles": [
+      "data entry", "typing", "form filling", "work from home", "part time", "part-time",
+      "copy paste", "copy-paste", "fresher", "trainee", "intern", "internship"
+    ],
+    "monthlyHints": ["per month", "monthly", "/month", "/ month", "a month"],
+    "monthlyThreshold": 80000,
+    "lpaThreshold": 15
+  },
+
+  "email": {
+    "freeDomains": [
+      "gmail.com", "yahoo.com", "yahoo.in", "yahoo.co.in", "ymail.com", "outlook.com",
+      "hotmail.com", "live.com", "rediffmail.com", "proton.me", "protonmail.com",
+      "aol.com", "icloud.com", "mail.com", "zoho.com"
+    ],
+    "sketchyTlds": ["xyz", "top", "click", "work", "buzz", "loan", "icu", "cfd", "sbs", "site", "online"],
+    "freeEmail": {
+      "severity": "MEDIUM",
+      "title": "Contact uses a free email address",
+      "advice": "Established companies send offers from their own domain, not a free email service."
+    },
+    "sketchyDomain": {
+      "severity": "MEDIUM",
+      "title": "Unusual domain ending",
+      "advice": "Cheap domain endings are heavily used by scam sites. Verify this domain."
+    }
+  },
+
+  "noCompanyId": {
+    "severity": "LOW",
+    "title": "No CIN or GSTIN in the letter",
+    "advice": "Many genuine letters omit this too, so treat it as a minor signal only."
+  }
+}
