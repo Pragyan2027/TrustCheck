@@ -145,6 +145,54 @@ button.primary:hover { filter: brightness(1.07); transform: translateY(-1px); }
   .tab { padding: 11px 9px; font-size: .9rem; }
 }
 
+
+/* Cleaner evidence layout */
+.item dl { display:grid; grid-template-columns:minmax(150px,.8fr) minmax(0,1.5fr); gap:6px 14px; margin:12px 0 2px; }
+.item dt { color:var(--muted); font-size:.88rem; }
+.item dd { margin:0; overflow-wrap:anywhere; font-size:.92rem; }
+.item .badge { font-size:.72rem; padding:3px 9px; }
+@media(max-width:640px){ .item dl { grid-template-columns:1fr; gap:2px; } .item dd { margin-bottom:8px; } }
+
+
+/* Offer-letter results: compact summary, grouped findings and expandable evidence */
+.offer-section { margin-top:22px; }
+.offer-overview { padding:18px; border:1px solid var(--line); border-radius:16px; background:var(--card); }
+.offer-overview-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.offer-score { font-size:1.65rem; font-weight:850; letter-spacing:-.03em; }
+.offer-summary { margin:12px 0 0; line-height:1.65; }
+.offer-section-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.offer-section-heading h3 { margin:0; }
+.offer-total,.offer-duplicate-note { color:var(--muted); font-size:.82rem; }
+.offer-counts { display:flex; gap:9px; flex-wrap:wrap; margin:12px 0 15px; }
+.offer-count { display:flex; align-items:baseline; gap:7px; padding:7px 11px; border-radius:10px; background:var(--bg); border:1px solid var(--line); }
+.offer-count strong { font-size:1.05rem; }
+.offer-count span { color:var(--muted); font-size:.78rem; text-transform:capitalize; }
+.offer-flag { padding:15px 16px; margin:12px 0; border:1px solid var(--line); border-left:4px solid var(--muted); border-radius:13px; background:var(--card); }
+.offer-flag.critical,.offer-flag.high { border-left-color:var(--high); }
+.offer-flag.medium { border-left-color:var(--med); }
+.offer-flag.low { border-left-color:var(--low); }
+.offer-flag-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.offer-flag-head strong { line-height:1.4; }
+.offer-duplicate-note { margin:7px 0 0; }
+.offer-advice { margin:10px 0 0; line-height:1.55; }
+.offer-evidence { margin-top:10px; padding-top:9px; border-top:1px solid var(--line); }
+.offer-evidence summary { color:var(--accent); font-size:.88rem; }
+.offer-evidence ul { padding-left:20px; margin:10px 0 2px; }
+.offer-evidence li { margin:8px 0; color:var(--muted); line-height:1.5; overflow-wrap:anywhere; }
+.offer-positive-list { display:grid; gap:8px; }
+.offer-positive { padding:11px 13px; border:1px solid var(--line); border-left:3px solid var(--low); border-radius:10px; background:var(--card); line-height:1.5; }
+.offer-extracted dl { display:grid; grid-template-columns:minmax(130px,.7fr) minmax(0,1.5fr); gap:8px 14px; }
+.offer-extracted dt { color:var(--muted); }
+.offer-extracted dd { margin:0; overflow-wrap:anywhere; }
+.offer-empty { margin-top:16px; padding:15px; border:1px solid var(--line); border-radius:12px; }
+.company-evidence { padding:10px 12px; border:1px solid var(--line); border-radius:12px; }
+.company-evidence .evidence-row { padding:10px 0; }
+@media(max-width:640px) {
+  .offer-flag { padding:13px; }
+  .offer-extracted dl { grid-template-columns:1fr; gap:3px; }
+  .offer-extracted dd { margin-bottom:8px; }
+}
+
 </style>
 </head>
 <body>
@@ -264,7 +312,9 @@ $('company-form').addEventListener('submit',async event=>{
   finally{button.disabled=false;}
 });
 function renderCompany(r){
-  const out=$('company-result');out.replaceChildren();
+  const out=$('company-result');
+  out.replaceChildren();
+
   const verdict=String(r.verdict||'Needs review');
   const verdictLower=verdict.toLowerCase();
   const cls=(verdictLower.includes('fake')||verdictLower.includes('high risk'))?'fake':
@@ -273,42 +323,79 @@ function renderCompany(r){
   const hasIdentityWarning=evidences.some(e=>e.source==='identity_warning');
   const hasReservedDomain=evidences.some(e=>e.source==='reserved_domain') ||
     verdictLower.includes('test domain') || verdictLower.includes('unable to assess');
+
   const top=node('div','scoreline');
   top.append(node('span','score',(r.trustScore??'—')+'/100'),node('span','badge '+cls,verdict));
   out.append(top);
   out.append(node('p',null,'Company: '+(r.name||'Not provided')));
-  out.append(node('p','note','The score summarizes available signals; it is not a probability of fraud or a guarantee of legitimacy.'));
-  if(hasReservedDomain){
-    out.append(node('div','warning','Unable to assess this as a real company: a reserved example domain was detected. Technical signals for a test domain do not establish company legitimacy.'));
-  }
-  if(hasIdentityWarning){
-    out.append(node('div','warning','Recruiter identity warning: the recruiter email domain differs from the company website domain. Verify the recruiter using contact details obtained independently from the company’s official website.'));
-  }
-  out.append(node('h3',null,'Evidence breakdown'));
-  if(evidences.length){
-    evidences.forEach(e=>{
-      const source=String(e.source||'Check');
-      const detail=e.details;
-      const detailStatus=detail&&typeof detail==='object'?String(detail.status||''): '';
-      const warningItem=['identity_warning','reserved_domain'].includes(source) ||
-        detailStatus==='WARNING' || detailStatus==='UNAVAILABLE' || detailStatus==='TEST_DOMAIN';
-      const box=node('div','item'+(warningItem?' MEDIUM':''));
-      box.append(node('h3',null,source.replaceAll('_',' ')+' · score '+(e.score??0)));
-      if(detail&&typeof detail==='object'){
-        const dl=node('dl');
-        Object.entries(detail).forEach(([k,v])=>{
-          if(v===null||v===undefined||k==='raw')return;
-          const dt=node('dt',null,k.replaceAll('_',' ')),dd=node('dd');
-          dd.textContent=typeof v==='object'?JSON.stringify(v):String(v);
-          dl.append(dt,dd);
-        });
-        box.append(dl);
-      }else if(detail!==undefined)box.append(node('p',null,String(detail)));
-      out.append(box);
+  out.append(node('p','note','This score summarizes available signals. It is not a probability of fraud or a guarantee of legitimacy.'));
+
+  if(hasReservedDomain) out.append(node('div','warning','Unable to assess this as a real company: a reserved example domain was detected. Technical signals for a test domain do not establish company legitimacy.'));
+  if(hasIdentityWarning) out.append(node('div','warning','Recruiter identity warning: the recruiter email domain differs from the company website domain. Verify the recruiter using contact details obtained independently from the company’s official website.'));
+
+  const labels = {
+    blacklist:'Blacklist check', nominatim:'Location listing',
+    whois:'Domain registration', 'website analysis':'Website security',
+    'dns checks':'Email DNS records', registry:'Company registry',
+    identity_warning:'Recruiter identity', reserved_domain:'Reserved domain'
+  };
+  const factLabels = {
+    ageDays:'Domain age', creationDateRaw:'Domain created',
+    tlsPresent:'Secure connection (TLS)', contactPageFound:'Contact page found',
+    certCount:'TLS certificates', certType:'Certificate type',
+    hasMX:'Mail server (MX) configured', hasSPF:'Email protection (SPF) configured',
+    top:'Location found', count:'Listings found', email:'Recruiter email',
+    domainMismatch:'Email domain mismatch', companyDomain:'Company domain',
+    recruiterEmail:'Recruiter email'
+  };
+  const format = (key,value) => {
+    if(typeof value==='boolean') return value?'Yes':'No';
+    if(key==='ageDays' && Number.isFinite(Number(value))) return `${Number(value).toLocaleString()} days (about ${(Number(value)/365).toFixed(1)} years)`;
+    if(key==='creationDateRaw') {
+      const date=new Date(value);
+      return Number.isNaN(date.getTime())?String(value):date.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+    }
+    if(key==='top' && value && typeof value==='object') return value.display_name||value.name||'A public location listing was found';
+    if(Array.isArray(value)) return value.join(', ');
+    return String(value);
+  };
+
+  out.append(node('h3',null,'Verification checks'));
+  evidences.forEach(e=>{
+    const source=String(e.source||'check');
+    const d=e.details&&typeof e.details==='object'?e.details:{};
+    const item=node('div','item');
+    const head=node('div','evidence-head');
+    const title=labels[source]||source.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
+    head.append(node('strong',null,title));
+    const points=Number(e.score??0);
+    head.append(node('span',null,(points>0?'+':'')+points+' points'));
+    item.append(head);
+
+    if(d.status) {
+      const state=d.status.replaceAll('_',' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+      const badge=node('span','badge '+(d.status==='POSITIVE'||d.status==='NO_MATCH'||d.status==='WEAK_POSITIVE'?'real':'review'),state);
+      badge.style.marginTop='8px';
+      item.append(badge);
+    }
+    if(d.reason) item.append(node('p',null,d.reason));
+
+    const facts=node('dl');
+    Object.entries(factLabels).forEach(([key,label])=>{
+      const value=d[key];
+      if(value===undefined||value===null||value==='') return;
+      facts.append(node('dt',null,label),node('dd',null,format(key,value)));
     });
-  }else out.append(node('p',null,'No evidence details were returned by the API.'));
-  out.append(node('p','note','If a public service failed, treat that as unavailable evidence—not proof that the company is fake.'));
-  out.hidden=false;out.scrollIntoView({behavior:'smooth',block:'start'});
+    if(facts.children.length)item.append(facts);
+
+    // Hide raw API payloads and internal map metadata (IDs, coordinates,
+    // licence text, bounding boxes, and other implementation details).
+    out.append(item);
+  });
+
+  out.append(node('p','note','Unavailable checks are not proof of fraud. Treat each signal as supporting evidence and independently verify important details.'));
+  out.hidden=false;
+  out.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 // Offer letter checker: existing OfferLetterController endpoints
@@ -348,51 +435,122 @@ $('offer-submit').addEventListener('click',async()=>{
   finally{button.disabled=false;}
 });
 function renderOffer(a){
-  const out=$('offer-result');out.replaceChildren();
+  const out=$('offer-result');
+  out.replaceChildren();
 
-  // Offer-letter risk result
-  const level=String(a.riskLevel||'MEDIUM');
-  const top=node('div','scoreline');
-  top.append(node('span','badge '+level,level+' RISK'));
-  top.append(node('span','score',(a.riskScore??'—')+'/100'));
-  out.append(top);
-  out.append(node('p',null,a.summary||'Analysis complete.'));
+  const level=String(a.riskLevel||'MEDIUM').toUpperCase();
+  const score=Number(a.riskScore);
+  const top=node('div','offer-overview');
+  const topLine=node('div','offer-overview-head');
+  topLine.append(node('span','badge '+level,level+' RISK'));
+  topLine.append(node('span','offer-score',Number.isFinite(score)?score+'/100':'—/100'));
+  top.append(topLine);
 
-  if(Array.isArray(a.redFlags)&&a.redFlags.length){
-    out.append(node('h3',null,'Warning signs'));
-    a.redFlags.forEach(f=>{
-      const box=node('div','item '+(f.severity||''));
-      box.append(node('h3',null,(f.title||f.code||'Warning')+' · '+(f.severity||'')));
-      if(f.evidence)box.append(node('p',null,'Evidence: “'+f.evidence+'”'));
-      if(f.advice)box.append(node('p',null,f.advice));
-      out.append(box);
+  const summary=node('p','offer-summary',a.summary||'Analysis complete.');
+  top.append(summary);
+
+  const flags=Array.isArray(a.redFlags)?a.redFlags:[];
+  const groups=new Map();
+  flags.forEach((f,index)=>{
+    const title=String(f.title||f.code||'Warning');
+    const severity=String(f.severity||'MEDIUM').toUpperCase();
+    const key=(f.code||title).toLowerCase().replace(/\s+/g,' ').trim()+'|'+severity;
+    if(!groups.has(key))groups.set(key,{title,severity,items:[],firstIndex:index});
+    groups.get(key).items.push(f);
+  });
+  const grouped=[...groups.values()];
+  const severityOrder={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};
+  grouped.sort((x,y)=>(severityOrder[x.severity]??4)-(severityOrder[y.severity]??4));
+
+  const counts={CRITICAL:0,HIGH:0,MEDIUM:0,LOW:0};
+  flags.forEach(f=>{const s=String(f.severity||'MEDIUM').toUpperCase();counts[s]=(counts[s]||0)+1;});
+
+  if(flags.length){
+    const section=node('section','offer-section');
+    const sectionHead=node('div','offer-section-heading');
+    sectionHead.append(node('h3',null,'Warning signs'));
+    sectionHead.append(node('span','offer-total',flags.length+' detected'));
+    section.append(sectionHead);
+
+    const countRow=node('div','offer-counts');
+    ['CRITICAL','HIGH','MEDIUM','LOW'].forEach(s=>{
+      if(!counts[s])return;
+      const count=node('div','offer-count '+s.toLowerCase());
+      count.append(node('strong',null,String(counts[s])),node('span',null,s.toLowerCase()));
+      countRow.append(count);
     });
+    section.append(countRow);
+
+    grouped.forEach(group=>{
+      const box=node('article','offer-flag '+group.severity.toLowerCase());
+      const head=node('div','offer-flag-head');
+      head.append(node('strong',null,group.title));
+      const severity=node('span','badge '+group.severity,group.severity);
+      head.append(severity);
+      box.append(head);
+
+      if(group.items.length>1){
+        box.append(node('p','offer-duplicate-note',group.items.length+' related detections grouped together'));
+      }
+
+      const advice=[...new Set(group.items.map(f=>String(f.advice||'').trim()).filter(Boolean))];
+      if(advice.length){
+        const adviceBox=node('p','offer-advice',advice[0]);
+        box.append(adviceBox);
+      }
+
+      const evidenceItems=group.items.map(f=>String(f.evidence||'').trim()).filter(Boolean);
+      if(evidenceItems.length){
+        const details=node('details','offer-evidence');
+        const summary=node('summary',null,'View evidence ('+evidenceItems.length+')');
+        details.append(summary);
+        const list=node('ul');
+        evidenceItems.forEach(text=>list.append(node('li',null,'“'+text+'”')));
+        details.append(list);
+        box.append(details);
+      }
+      if(advice.length>1){
+        const details=node('details','offer-evidence');
+        details.append(node('summary',null,'Additional advice'));
+        const list=node('ul');
+        advice.slice(1).forEach(text=>list.append(node('li',null,text)));
+        details.append(list);
+        box.append(details);
+      }
+      section.append(box);
+    });
+    out.append(section);
   }else{
-    out.append(node('p',null,'No configured warning rules were triggered. This does not prove the offer is genuine.'));
+    out.append(node('div','offer-empty','No configured warning rules were triggered. This does not prove the offer is genuine.'));
   }
 
   if(Array.isArray(a.positives)&&a.positives.length){
-    out.append(node('h3',null,'Reassuring signals'));
-    a.positives.forEach(p=>out.append(node('p',null,'✓ '+p)));
+    const section=node('section','offer-section');
+    section.append(node('h3',null,'Reassuring signals'));
+    const list=node('div','offer-positive-list');
+    a.positives.forEach(p=>list.append(node('div','offer-positive','✓ '+p)));
+    section.append(list);
+    out.append(section);
   }
 
-  // Extracted facts from the offer letter
   if(a.extracted&&typeof a.extracted==='object'){
+    const labels={companyName:'Company',jobTitle:'Role',emails:'Email addresses',companyDomains:'Company domains',amounts:'Amounts mentioned'};
+    const card=node('section','offer-section offer-extracted');
+    card.append(node('h3',null,'Information found in the letter'));
     const dl=node('dl');
-    const labels={companyName:'Company',jobTitle:'Role',emails:'Emails',companyDomains:'Domains',amounts:'Amounts'};
     Object.entries(labels).forEach(([key,label])=>{
-      const v=a.extracted[key];
-      if(v===null||v===undefined||v===''||(Array.isArray(v)&&!v.length))return;
-      dl.append(node('dt',null,label),node('dd',null,Array.isArray(v)?v.join(', '):String(v)));
+      const value=a.extracted[key];
+      if(value===null||value===undefined||value===''||(Array.isArray(value)&&!value.length))return;
+      dl.append(node('dt',null,label),node('dd',null,Array.isArray(value)?value.join(', '):String(value)));
     });
-    if(dl.children.length){out.append(node('h3',null,'Found in the letter'));out.append(dl);}
+    if(dl.children.length){card.append(dl);out.append(card);}
   }
 
-  // Company verification result returned by the integrated backend controller
+  // Company verification remains a separate assessment from offer-letter risk.
   if(a.companyVerification){
     const report=a.companyVerification;
-    out.append(node('h3',null,'Company verification'));
-
+    const section=node('section','offer-section');
+    section.append(node('h3',null,'Company verification'));
     const score=Number(report.trustScore);
     const safeScore=Number.isFinite(score)?Math.max(0,Math.min(100,score)):null;
     const card=node('div','company-score-card');
@@ -400,7 +558,6 @@ function renderOffer(a){
     head.append(node('strong',null,report.name||(a.extracted&&a.extracted.companyName)||'Extracted company'));
     if(safeScore!==null)head.append(node('span','company-score-number',safeScore+'/100'));
     card.append(head);
-
     if(safeScore!==null){
       const track=node('div','company-score-track');
       const fill=node('div','company-score-fill');
@@ -409,40 +566,30 @@ function renderOffer(a){
       card.append(track);
     }
     if(report.verdict)card.append(node('p',null,'Assessment: '+report.verdict));
-    out.append(card);
+    section.append(card);
+    if(Array.isArray(report.evidences)&&report.evidences.length){
+      const details=node('details','offer-evidence company-evidence');
+      details.append(node('summary',null,'View company verification evidence ('+report.evidences.length+' checks)'));
+      report.evidences.forEach(e=>{
+        const row=node('div','evidence-row');
+        const h=node('div','evidence-head');
+        h.append(node('strong',null,String(e.source||'Check').replaceAll('_',' ')));
+        h.append(node('span',null,(Number(e.score)>0?'+':'')+(e.score??0)+' points'));
+        row.append(h);
+        const d=e.details&&typeof e.details==='object'?e.details:{};
+        if(d.status)row.append(node('p',null,'Status: '+String(d.status).replaceAll('_',' ')));
+        if(d.reason)row.append(node('p',null,d.reason));
+        details.append(row);
+      });
+      section.append(details);
+    }
+    out.append(section);
   }
 
   if(a.verificationNote){
     out.append(node('div','warning',a.verificationNote));
   }else if(!a.companyVerification){
     out.append(node('div','warning','Company verification was not returned by the server. The offer-letter analysis is shown above.'));
-  }
-
-  // Evidence breakdown: omit raw WHOIS text to keep the report readable.
-  if(a.companyVerification&&Array.isArray(a.companyVerification.evidences)){
-    out.append(node('h3',null,'Company verification evidence'));
-    a.companyVerification.evidences.forEach(e=>{
-      const box=node('div','evidence-row');
-      const head=node('div','evidence-head');
-      head.append(node('span',null,String(e.source||'Check').replaceAll('_',' ')));
-      head.append(node('span',null,(Number(e.score)>0?'+':'')+(e.score??0)+' points'));
-      box.append(head);
-
-      const d=e.details&&typeof e.details==='object'?e.details:{};
-      if(d.status)box.append(node('p',null,'Status: '+d.status));
-      if(d.reason)box.append(node('p',null,d.reason));
-
-      const keys=['creationDateRaw','ageDays','hasMX','hasSPF','tlsPresent','contactPageFound',
-                  'email','domainMismatch','companyDomain','recruiterEmail','count'];
-      const facts=keys.filter(k=>d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>{
-        let value=d[k];
-        if(typeof value==='boolean')value=value?'Yes':'No';
-        if(k==='ageDays')value+=' days';
-        return k.replace(/([A-Z])/g,' $1').replace(/^./, c=>c.toUpperCase())+': '+value;
-      });
-      if(facts.length)box.append(node('p',null,facts.join(' · ')));
-      out.append(box);
-    });
   }
 
   out.append(node('p','note','Automated screening only. A company trust score is not proof that an offer or recruiter is genuine. Scammers can copy real company details. Verify through the company’s independently located official website or HR contact.'));
