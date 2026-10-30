@@ -5,7 +5,7 @@ Check a job offer letter or a company for scam warning signs, before you share d
 [![CI](https://github.com/Pragyan2027/Fake-Company-Verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/Pragyan2027/Fake-Company-Verifier/actions/workflows/ci.yml)
 
 **Live demo:** 
-![Cursor Movement](app-demo.mp4)
+<video src="app-demo.mp4" width="100%" autoplay loop muted playsinline></video>
 (The free host sleeps when idle, so the first load can take up to a minute.)
 
 <!-- TODO: add 2 screenshots or one short GIF here:
