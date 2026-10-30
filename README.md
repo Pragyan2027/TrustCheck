@@ -1,103 +1,160 @@
-## Fake Company Verifier
+# TrustCheck
 
-## Overview
+Check a job offer letter or a company for scam warning signs, before you share documents or pay anyone.
 
-Fake job postings and scam companies have become increasingly common on job portals and social media platforms. Many of these entities operate without a real office location, registered domain history, or proper corporate infrastructure, making it difficult for students and job seekers to verify their authenticity.
-This project aims to automatically verify the legitimacy of a company using publicly available and free data sources. It combines blacklist data, physical office verification, domain intelligence, website analysis, and DNS infrastructure checks to produce a trust score and verdict for a given company.
+[![CI](https://github.com/Pragyan2027/Fake-Company-Verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/Pragyan2027/Fake-Company-Verifier/actions/workflows/ci.yml)
 
+**Live demo:** <!-- TODO: paste your Render URL -->
+(The free host sleeps when idle, so the first load can take up to a minute.)
 
-## Problem Statement
+<!-- TODO: add 2 screenshots or one short GIF here:
+     1. a scam letter flagged High risk, with the highlighted sentence
+     2. the company check breakdown
+     Blur any phone numbers, names or emails shown in the sample letters. -->
 
-Manual verification of companies is time-consuming and error-prone. Users often have to:
+## Why this exists
 
--**Search for office addresses**
--**Verify websites**
--**Check domain age**
--**Look for blacklist warnings**
--**There is no single platform that consolidates all these checks into a unified verification system, especially using free and open services.**
+Fake job offers are common in India and elsewhere. A typical one looks like a real offer letter and asks the
+candidate for a "refundable security deposit", "registration fee" or "kit charges". TrustCheck gives candidates a fast second
+opinion, with reasons they can check for themselves.
 
-## Solution Approach
+## What it does
 
-The Fake Company Verifier performs multi-source verification by collecting independent evidence from various free data sources and aggregating them into a trust score. Each verification step contributes positively, negatively, or neutrally to the final result.
+**1. Offer letter analysis.** Upload a PDF, a screenshot or photo, a text file, or paste the text. The analyzer:
+- flags letters that ask the *candidate* to pay money, and quotes the exact sentence;
+- does not flag normal salary figures, "we do not charge any fee" disclaimers, or later-breach clauses such as notice-period buy-outs (these get a softer warning);
+- looks for other scam patterns: free-mail recruiters, WhatsApp/Telegram-only contact, no interview, artificial urgency, pay that is too high for the role, requests for OTP or PIN;
+- pulls out the company name, role, emails, domains and amounts, then **automatically verifies the company it found**.
 
-## System Architecture
+**2. Company verification.** Scores a company from independent public signals (below) and shows a breakdown of every check, so the result is explainable.
 
-The application follows a layered Spring Boot architecture:
+## How a check flows
 
- ## Frontend:
-- Static HTML + JavaScript
- ## Backend:
-- Spring Boot REST API
- ## Data Sources:
-- CSV blacklist + external public services
- ## Deployment:
--  Executable JAR
+```mermaid
+flowchart LR
+    A[Letter: PDF / image / text] --> B[Text extraction<br/>PDFBox, in-browser OCR]
+    B --> C[Offer letter analyzer<br/>rules in JSON]
+    C --> D[Company name, domain, recruiter email]
+    D --> E[Company verification]
+    C --> F[Combined result]
+    E --> F
+```
 
-The frontend is served directly by the backend and communicates via REST APIs.
+## Signals used for company verification
 
-## Verification Components Used & Explained
+| Signal | What it tells us |
+|---|---|
+| Domain age (WHOIS) | Brand-new domains are a common scam sign |
+| Website contact page | Real companies usually say how to reach them |
+| HTTPS / TLS | Basic website hygiene |
+| DNS (MX, SPF) | Whether the domain is set up for real company email |
+| Recruiter email | Free-mail providers, or a domain that does not match the company |
+| Blacklist | Names already reported as scams |
+| OpenStreetMap (Nominatim) | Weak signal only: many real small companies are not listed |
+| Reserved/test domains | Reported as "unable to assess" instead of guessed at |
 
-## 1. Blacklist Check (Seed Data)
+Verdicts: Low risk indicators, Needs review, High risk indicators, Test domain / Unable to assess.
 
-A CSV file containing known fake or blacklisted companies is loaded at application startup.
-**Source:** Publicly available verified lists
-**Purpose:** Acts as an early warning signal
-**Behavior:** A blacklist match does not immediately mark a company as fake but lowers trust
+<!-- TODO: add the real weights/points from VerificationService so this stays accurate. -->
 
-This ensures fairness and avoids hard-coded assumptions.
+## Design decisions
 
-## 2. Nominatim (OpenStreetMap) Office Verification
+- **Rule-based and explainable, not a black box.** Every flag shows the sentence or signal behind it. A candidate can disagree with a rule, which a model score would not allow.
+- **Money is only a red flag when the candidate pays.** Every real letter mentions salary, so the analyzer looks at who is paying and skips sentences that say no fee is charged.
+- **"We could not check" is never treated as "bad".** If WHOIS data is hidden or the map service is down, that check is skipped rather than penalised. Weak signals (map listing) carry small weight.
+- **Rules live in `offer-rules.json`.** Adding a scam phrase needs no code change.
+- **Privacy.** Letters are processed in memory and not stored. Images are read by OCR in the browser, so the picture never leaves the device.
+- **Careful wording.** Results say "risk indicators", not "fake", because they are automated signals, not proof.
 
-Nominatim is a free geocoding service provided by OpenStreetMap that converts place names into geographic coordinates and structured location data.
+## Tech stack
 
-## How it is used here:
-The company name (and optional city) is queried against Nominatim. If a physical office location is found, it is considered strong legitimacy evidence.
+Java 17, Spring Boot, Spring WebClient, Apache PDFBox, Jackson, Tesseract.js (in-browser OCR), vanilla HTML/CSS/JS, JUnit 5, GitHub Actions, hosted on Render.
 
-## Why it matters:
-Fake companies often do not have verifiable physical offices.
+## API
 
-## API used:
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/verify` | POST | Verify a company (`name`, optional `city`, `website`, `domain`, `recruiterEmail`) |
+| `/api/offer-letter/analyze-text` | POST | Analyze pasted letter text, `{"text": "..."}` |
+| `/api/offer-letter/analyze-file` | POST | Analyze an uploaded PDF or TXT (multipart field `file`) |
 
-- OpenStreetMap Nominatim Search API
-- Free and open-source
+The two offer-letter endpoints return the offer analysis plus `companyVerification` and `verificationNote`.
 
-## 3. WHOIS Domain Analysis
+Example (trimmed):
 
-WHOIS is a protocol that provides registration details of internet domains, such as:
-Creation date , Registrar , Expiry date
+```json
+{
+  "riskScore": 100,
+  "riskLevel": "HIGH",
+  "summary": "Offer from Global Soft Solutions Pvt Ltd. Risk level: HIGH (100/100). This letter asks you to pay money...",
+  "redFlags": [
+    {
+      "code": "CANDIDATE_PAYMENT",
+      "title": "Asks the candidate to pay money",
+      "severity": "CRITICAL",
+      "evidence": "To confirm your seat you need to pay a refundable registration fee of Rs 2,500 via UPI...",
+      "advice": "Genuine employers do not charge candidates for jobs, training, kits or security. Do not pay anything."
+    }
+  ],
+  "companyVerification": { "...": "..." }
+}
+```
 
-## How it is used:
-The company’s domain is extracted from the provided website
-The domain’s age is calculated in days
+## Run locally
 
-## Why it matters:
+Requirements: Java 17+, Maven.
 
-Scam companies often use recently registered domains
-Older domains indicate long-term legitimacy
-No paid WHOIS APIs are used; raw WHOIS lookup is performed.
+```bash
+git clone https://github.com/Pragyan2027/Fake-Company-Verifier.git
+cd Fake-Company-Verifier
+mvn spring-boot:run
+```
 
-## 4. Website Analysis
+Open <http://localhost:8080>. Set a real contact for OpenStreetMap's usage policy in `application.properties`:
 
-The website analysis module checks:
-- **HTTPS availability**
-- **TLS certificate presence**
-- **Availability of a contact page**
+```properties
+app.nominatim.userAgent=TrustCheck/1.0 (your-email@example.com)
+spring.servlet.multipart.max-file-size=5MB
+spring.servlet.multipart.max-request-size=5MB
+```
 
-## Important design note:
-TLS failures can occur due to Java truststore or certificate chain limitations. Therefore, TLS failures do not immediately penalize the company and are handled using fallback logic.
-This prevents false positives for legitimate companies.
+Run the tests with `mvn test`.
 
-## 5. DNS Infrastructure Checks
+## Changing the rules
 
-DNS checks analyze whether a domain has proper email and sender validation records.
+Edit `src/main/resources/offer-rules.json` (phrases, severities, thresholds, wording) and restart. A typo in the file stops the app at startup with a clear error instead of silently disabling a rule.
 
-## Checks performed:
+## Evaluating accuracy
 
-- **MX records (mail servers)**
-- **SPF records (sender policy framework)**
+`tools/EvalRunner.java` sends labelled letters to the running app and reports how many scam letters were caught and how many genuine letters were wrongly flagged:
 
-## Why it matters?
-Real companies typically have configured corporate email infrastructure, while scam entities often do not.
+```bash
+java tools/EvalRunner.java http://localhost:8080 eval
+```
 
-## Here's an example of How it works:
-![Real Company](Screenshot.png)
+<!-- TODO: after you run it, add a line like:
+     "On a held-out set of N scam and M genuine letters: X% of scams rated High, Y% of genuine letters wrongly flagged." -->
+
+## Limitations
+
+- Rule-based detection can be reworded around. It catches the patterns it knows, so the rules need regular updating from real examples.
+- English only for now.
+- Scanned PDFs have no text layer. Take a screenshot of each page and upload the images.
+- Many domain registries hide WHOIS data, so domain age is sometimes unavailable.
+- The blacklist is small. Not being on it proves little.
+- Automated signals, not legal or professional advice. Always confirm a job on the company's official website.
+
+## Roadmap
+
+- "Report a missed scam" button (with consent) to feed new rules
+- Hindi and Hinglish phrase lists
+- Registered-company lookup (MCA)
+- Single combined verdict across letter and company
+
+## Contributing
+
+Found a scam phrase the app misses? Open an issue, or send a pull request adding it to `offer-rules.json` with an example letter (personal details removed).
+
+## License
+
+<!-- TODO: add a LICENSE file (MIT is a common choice for portfolio projects). -->
